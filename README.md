@@ -4,7 +4,7 @@
 
 * Python Project Creation Kit is a collection of scripts that I developed in order to help save time when creating a new Python project or when testing one.
 
-* The scripts also have exe compiled versions that can be used on a Windows operating system.
+* The scripts also have their exe compiled versions that can be run on a Windows operating system.
 
 
 

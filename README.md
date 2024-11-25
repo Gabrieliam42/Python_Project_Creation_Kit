@@ -13,7 +13,7 @@
 
 
 
-## AI Involvement
+### AI Involvement
 
 The scripts development did not depend on AI tools like ChatGPT, their main use was for creating code comments and descriptions.
 

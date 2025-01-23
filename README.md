@@ -6,7 +6,7 @@
 
 * The scripts also have their exe compiled versions that can be run as the respective .exe file for each script.
 
-*
+#
 
 
 [![MasterHead](https://developers.giphy.com/branch/master/static/api-512d36c09662682717108a38bbb5c57d.gif)](image_head)

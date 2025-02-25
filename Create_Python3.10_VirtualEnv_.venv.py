@@ -32,9 +32,7 @@ def update_environment_variable(variable_name, new_value, scope):
         with winreg.OpenKey(scope, r'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 0, winreg.KEY_ALL_ACCESS) as key:
             value, regtype = winreg.QueryValueEx(key, variable_name)
             value_list = value.split(os.pathsep)
-            # Remove any existing instances of the new value
             value_list = [v for v in value_list if v != new_value]
-            # Add the new value to the top
             value_list.insert(0, new_value)
             new_value_str = os.pathsep.join(value_list)
             winreg.SetValueEx(key, variable_name, 0, regtype, new_value_str)

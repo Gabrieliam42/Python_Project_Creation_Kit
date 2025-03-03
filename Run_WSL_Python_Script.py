@@ -3,61 +3,54 @@
 
 import os
 import sys
-import ctypes
-import tkinter as tk
-from tkinter import filedialog
 import subprocess
 
-def get_current_directory():
-    return os.getcwd()
-
-def check_admin_privileges():
+def is_wsl():
+    """Check if the script is running inside WSL by looking for 'microsoft' in /proc/version."""
     try:
-        return ctypes.windll.shell32.IsUserAnAdmin() != 0
-    except:
+        with open("/proc/version", "r") as f:
+            return "microsoft" in f.read().lower()
+    except FileNotFoundError:
         return False
 
-def run_as_admin(script, params):
-    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, f'"{script}" {params}', None, 1)
+def select_and_run_py():
+    """List .py files in the current directory, let the user choose one, and execute it."""
+    py_files = [f for f in os.listdir('.') if f.endswith('.py') and os.path.isfile(f)]
+    if not py_files:
+        print("No Python files found in the current directory.")
+        return
 
-def select_python_file():
-    root = tk.Tk()
-    root.withdraw()
-    file_path = filedialog.askopenfilename(filetypes=[("Python files", "*.py")])
-    return file_path
+    print("Python files in the current directory:")
+    for i, filename in enumerate(py_files, start=1):
+        print(f"{i}. {filename}")
 
-def convert_path_to_wsl_format(path):
-    drive, rest = os.path.splitdrive(path)
-    if drive:
-        drive_letter = drive[0].lower()
-        rest = rest.replace('\\', '/')
-        return f"/mnt/{drive_letter}{rest}"
-    return path
+    try:
+        choice = int(input("Select the number of the .py file you want to run: "))
+        if choice < 1 or choice > len(py_files):
+            print("Invalid selection.")
+            return
+    except ValueError:
+        print("Please enter a valid number.")
+        return
 
-def run_python_file(file_path):
-    wsl_path = convert_path_to_wsl_format(file_path)
-    subprocess.run(['wsl', 'python3', wsl_path], stderr=subprocess.STDOUT, stdout=sys.stdout)
+    selected_file = py_files[choice - 1]
+    command = [sys.executable, selected_file]
+    print(f"Executing command: {' '.join(command)}")
+    subprocess.run(command)
+
+def stay_open():
+    """Keep the shell open after execution, similar to 'cmd /k'."""
+    print("\nExecution finished.")
+    os.system("bash -i")
 
 def main():
-    cwd = get_current_directory()
-    print(f"Current working directory: {cwd}")
-    if not check_admin_privileges():
-        print("Script is not running with admin privileges. Restarting with admin privileges...")
-        run_as_admin(__file__, "")
-        return
-    py_files = []
-    for root, dirs, files in os.walk(cwd):
-        for file in files:
-            if file.endswith('.py'):
-                py_files.append(os.path.join(root, file))
-    if not py_files:
-        print("No .py files found in the current directory or its subdirectories.")
-        return
-    selected_file = select_python_file()
-    if not selected_file:
-        print("No file selected.")
-        return
-    run_python_file(selected_file)
+    if not is_wsl():
+        print("This script must be run inside WSL2. Exiting...")
+        input("Press Enter to exit...")
+        sys.exit(1)
+
+    select_and_run_py()
+    stay_open()
 
 if __name__ == "__main__":
     main()

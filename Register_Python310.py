@@ -1,48 +1,65 @@
+# Script Developer: Gabriel Mihai Sandu
+# GitHub Profile: https://github.com/Gabrieliam42
+
 import os
+import subprocess
+import platform
+import winreg
 import ctypes
 import sys
-import subprocess
+import re
+
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
 
 def run_as_admin():
+    params = " ".join([f'"{arg}"' for arg in sys.argv])
+    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
+
+def get_python_versions(base_path):
+    python_versions = []
+    for folder in os.listdir(base_path):
+        match = re.match(r'^Python(\d{3})$', folder)
+        if match and match.group(1) != '310':
+            python_versions.append(folder)
+    return python_versions
+
+def update_environment_variable(variable_name, new_value, scope):
     try:
-        if ctypes.windll.shell32.IsUserAnAdmin():
-            print("Running as Admin.")
-        else:
-            script = os.path.abspath(sys.argv[0])
-            params = " ".join(sys.argv[1:])
-            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, script, params, 1)
-            sys.exit()
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit()
-
-def adjust_path():
-    new_paths = [
-        r'C:\Program Files\Python310\Scripts',
-        r'C:\Program Files\Python310'
-    ]
-
-    current_path = subprocess.check_output(
-        'powershell -Command "[System.Environment]::GetEnvironmentVariable(\'Path\',\'Machine\')"',
-        shell=True
-    ).decode().strip()
-    path_parts = current_path.split(os.pathsep)
-
-    path_parts = [p for p in path_parts if p.rstrip('\\') not in [np.rstrip('\\') for np in new_paths]]
-    path_parts = new_paths + path_parts
-
-    new_path = os.pathsep.join(path_parts)
-
-    command = f'powershell -Command "[System.Environment]::SetEnvironmentVariable(\'Path\', \'{new_path}\', \'Machine\')"'
-    subprocess.run(command, shell=True)
-
-def main():
-    try:
-        run_as_admin()
-        adjust_path()
-        print("System PATH updated successfully.")
-    except Exception as e:
-        print(f"Error: {e}")
+        with winreg.OpenKey(scope, r'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 0, winreg.KEY_ALL_ACCESS) as key:
+            value, regtype = winreg.QueryValueEx(key, variable_name)
+            value_list = value.split(os.pathsep)
+            # Remove any existing instances of the new value
+            value_list = [v for v in value_list if v != new_value]
+            # Add the new value to the top
+            value_list.insert(0, new_value)
+            new_value_str = os.pathsep.join(value_list)
+            winreg.SetValueEx(key, variable_name, 0, regtype, new_value_str)
+            print(f"Updated {variable_name} in system variables.")
+    except FileNotFoundError:
+        print(f"{variable_name} not found in system variables.")
 
 if __name__ == "__main__":
-    main()
+    if not is_admin():
+        print("Requesting administrative privileges...")
+        run_as_admin()
+        sys.exit()
+    
+    base_path = r"C:\Program Files"
+    new_path = r"C:\Program Files\Python310"
+    new_path_scripts = os.path.join(new_path, 'Scripts')
+    
+    update_environment_variable('Path', new_path_scripts, winreg.HKEY_LOCAL_MACHINE)
+    update_environment_variable('Path', new_path, winreg.HKEY_LOCAL_MACHINE)
+    
+    # Detect other installed Python versions (excluding Python310)
+    python_versions = get_python_versions(base_path)
+    print("Detected Python versions (excluding 310):", python_versions)
+    
+    print("All changes to the System and User Variables have been made!")
+    
+    if platform.system() == 'Windows':
+        subprocess.run(['cmd', '/k', 'echo Virtual environment setup complete.'], shell=True)

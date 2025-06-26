@@ -1,48 +1,70 @@
+# Script Developer: Gabriel Mihai Sandu
+# GitHub Profile: https://github.com/Gabrieliam42
+
 import os
+import subprocess
+import platform
+import winreg
 import ctypes
 import sys
-import subprocess
+import re
+
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
 
 def run_as_admin():
+    params = " ".join([f'"{arg}"' for arg in sys.argv])
+    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, params, None, 1)
+
+def update_environment_variable(variable_name, new_value, scope):
     try:
-        if ctypes.windll.shell32.IsUserAnAdmin():
-            print("Running as Admin.")
-        else:
-            script = os.path.abspath(sys.argv[0])
-            params = " ".join(sys.argv[1:])
-            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, script, params, 1)
-            sys.exit()
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit()
+        with winreg.OpenKey(scope, r'SYSTEM\CurrentControlSet\Control\Session Manager\Environment', 0, winreg.KEY_ALL_ACCESS) as key:
+            try:
+                value, regtype = winreg.QueryValueEx(key, variable_name)
+                value_list = value.split(os.pathsep)
+            except FileNotFoundError:
+                value_list = []
+                regtype = winreg.REG_EXPAND_SZ
 
-def adjust_path():
-    new_paths = [
-        r'C:\ProgramData\miniforge3\Scripts',
-        r'C:\ProgramData\miniforge3'
-    ]
+            # Remove any existing instances (with or without trailing slash)
+            value_list = [v for v in value_list if v.rstrip('\\') != new_value.rstrip('\\')]
 
-    current_path = subprocess.check_output(
-        'powershell -Command "[System.Environment]::GetEnvironmentVariable(\'Path\',\'Machine\')"',
-        shell=True
-    ).decode().strip()
-    path_parts = current_path.split(os.pathsep)
+            # Insert new value at the beginning
+            value_list.insert(0, new_value)
+            new_value_str = os.pathsep.join(value_list)
+            winreg.SetValueEx(key, variable_name, 0, regtype, new_value_str)
+            print(f"Updated {variable_name} in system variables with: {new_value}")
+    except PermissionError:
+        print("Permission denied while updating registry. Run as administrator.")
 
-    path_parts = [p for p in path_parts if p.rstrip('\\') not in [np.rstrip('\\') for np in new_paths]]
-    path_parts = new_paths + path_parts
-
-    new_path = os.pathsep.join(path_parts)
-
-    command = f'powershell -Command "[System.Environment]::SetEnvironmentVariable(\'Path\', \'{new_path}\', \'Machine\')"'
-    subprocess.run(command, shell=True)
-
-def main():
-    try:
-        run_as_admin()
-        adjust_path()
-        print("System PATH updated successfully.")
-    except Exception as e:
-        print(f"Error: {e}")
+def get_miniforge_versions(base_path):
+    forge_versions = []
+    for folder in os.listdir(base_path):
+        if folder.lower().startswith("miniforge") and folder != "miniforge3":
+            forge_versions.append(folder)
+    return forge_versions
 
 if __name__ == "__main__":
-    main()
+    if not is_admin():
+        print("Requesting administrative privileges...")
+        run_as_admin()
+        sys.exit()
+
+    base_path = r"C:\ProgramData"
+    new_path = r"C:\ProgramData\miniforge3"
+    new_path_scripts = os.path.join(new_path, 'Scripts')
+
+    update_environment_variable('Path', new_path_scripts, winreg.HKEY_LOCAL_MACHINE)
+    update_environment_variable('Path', new_path, winreg.HKEY_LOCAL_MACHINE)
+
+    # Detect other Miniforge versions (excluding miniforge3)
+    other_forge_versions = get_miniforge_versions(base_path)
+    print("Detected other Miniforge versions (excluding miniforge3):", other_forge_versions)
+
+    print("Miniforge3 has been registered as the system Python environment.")
+
+    if platform.system() == 'Windows':
+        subprocess.run(['cmd', '/k', 'echo Miniforge system registration complete.'], shell=True)

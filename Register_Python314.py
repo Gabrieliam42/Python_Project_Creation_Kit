@@ -23,7 +23,7 @@ def get_python_versions(base_path):
     python_versions = []
     for folder in os.listdir(base_path):
         match = re.match(r'^Python(\d{3})$', folder)
-        if match and match.group(1) != '313':
+        if match and match.group(1) != '314':
             python_versions.append(folder)
     return python_versions
 
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         sys.exit()
     
     base_path = r"C:\Program Files"
-    new_path_no_sep = os.path.normpath(os.path.join(base_path, "Python313"))
+    new_path_no_sep = os.path.normpath(os.path.join(base_path, "Python314"))
     new_path = new_path_no_sep + os.sep
     new_path_scripts = os.path.normpath(os.path.join(new_path_no_sep, "Scripts")) + os.sep
     
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     update_environment_variable('Path', new_path, winreg.HKEY_LOCAL_MACHINE)
     
     python_versions = get_python_versions(base_path)
-    print("Detected Python versions (excluding 313):", python_versions)
+    print("Detected Python versions (excluding 314):", python_versions)
     
     print("All changes to the System and User Variables have been made!")
     

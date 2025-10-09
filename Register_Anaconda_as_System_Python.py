@@ -28,11 +28,10 @@ def update_environment_variable(variable_name, new_value, scope):
             except FileNotFoundError:
                 value_list = []
                 regtype = winreg.REG_EXPAND_SZ
-
-            # Remove existing instances with or without trailing slashes
-            value_list = [v for v in value_list if v.rstrip('\\') != new_value.rstrip('\\')]
-
-            # Add new value to the beginning
+            value_list = [
+                v for v in value_list
+                if os.path.normcase(os.path.normpath(v.rstrip('\\'))) != os.path.normcase(os.path.normpath(new_value.rstrip('\\')))
+            ]
             value_list.insert(0, new_value)
             new_value_str = os.pathsep.join(value_list)
             winreg.SetValueEx(key, variable_name, 0, regtype, new_value_str)
@@ -54,13 +53,13 @@ if __name__ == "__main__":
         sys.exit()
 
     base_path = r"C:\ProgramData"
-    new_path = r"C:\ProgramData\anaconda3"
-    new_path_scripts = os.path.join(new_path, 'Scripts')
+    new_path_no_sep = os.path.normpath(os.path.join(r"C:\ProgramData", "anaconda3"))
+    new_path = new_path_no_sep + os.sep
+    new_path_scripts = os.path.normpath(os.path.join(new_path_no_sep, "Scripts")) + os.sep
 
     update_environment_variable('Path', new_path_scripts, winreg.HKEY_LOCAL_MACHINE)
     update_environment_variable('Path', new_path, winreg.HKEY_LOCAL_MACHINE)
 
-    # Detect other Anaconda installations (excluding anaconda3)
     other_anacondas = get_anaconda_versions(base_path)
     print("Detected other Anaconda versions (excluding anaconda3):", other_anacondas)
 

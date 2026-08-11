@@ -44,26 +44,22 @@ def update_environment_variable(variable_name, new_value, scope):
         print(f"{variable_name} not found in system variables.")
 
 def create_virtual_environment(directory):
-    print(f"Creating a virtual environment in {directory}...")
-    subprocess.run(["python", "-m", "venv", ".venv"], cwd=directory, shell=True)
-    print("Virtual environment created.")
+    print(f"Creating a conda virtual environment in {directory}...")
+    subprocess.run(["conda", "create", "--prefix", "./.venv", "python=3.11", "-y"], cwd=directory, shell=True)
+    print("Conda virtual environment created.")
 
 def find_and_activate_venv():
     cwd = os.getcwd()
-    for root, dirs, files in os.walk(cwd):
-        scripts_dir = 'Scripts' if platform.system() == 'Windows' else 'bin'
-        if scripts_dir in dirs:
-            scripts_path = os.path.join(root, scripts_dir)
-            required_files = {'activate.bat' if platform.system() == 'Windows' else 'activate'}
-            if required_files.issubset(set(os.listdir(scripts_path))):
-                print(f"Virtual environment found and activated at: {root}")
-                if platform.system() == 'Windows':
-                    activate_command = f'cmd /k ""{os.path.join(scripts_path, "activate.bat")}" && python.exe -m pip install --upgrade pip"'
-                else:
-                    activate_command = f'source "{os.path.join(scripts_path, "activate")}" && python3 -m pip install --upgrade pip'
-                subprocess.run(activate_command, shell=True, executable='/bin/bash' if platform.system() != 'Windows' else None)
-                return
-    print("No virtual environment found.")
+    env_path = os.path.join(cwd, ".venv")
+    if os.path.exists(env_path):
+        print(f"Conda environment found at: {env_path}")
+        if platform.system() == 'Windows':
+            activate_command = 'cmd /k "conda activate .\\.venv && python.exe -m pip install --upgrade pip"'
+        else:
+            activate_command = 'source activate ./.venv && python3 -m pip install --upgrade pip'
+        subprocess.run(activate_command, shell=True, executable='/bin/bash' if platform.system() != 'Windows' else None)
+    else:
+        print("No conda virtual environment found.")
 
 if __name__ == "__main__":
     if not is_admin():

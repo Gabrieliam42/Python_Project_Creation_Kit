@@ -45,7 +45,7 @@ def update_environment_variable(variable_name, new_value, scope):
 
 def create_virtual_environment(directory):
     print(f"Creating a virtual environment in {directory}...")
-    subprocess.run(["python", "-m", "venv", ".venv"], cwd=directory, shell=True)
+    subprocess.run(["python", "-m", "venv", "venv"], cwd=directory, shell=True)
     print("Virtual environment created.")
 
 def find_and_activate_venv():

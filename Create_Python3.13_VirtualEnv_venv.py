@@ -23,7 +23,7 @@ def get_python_versions(base_path):
     python_versions = []
     for folder in os.listdir(base_path):
         match = re.match(r'^Python(\d{3})$', folder)
-        if match and match.group(1) != '311':
+        if match and match.group(1) != '313':
             python_versions.append(folder)
     return python_versions
 
@@ -45,7 +45,7 @@ def update_environment_variable(variable_name, new_value, scope):
 
 def create_virtual_environment(directory):
     print(f"Creating a virtual environment in {directory}...")
-    subprocess.run(["python", "-m", "venv", ".venv"], cwd=directory, shell=True)
+    subprocess.run(["python", "-m", "venv", "venv"], cwd=directory, shell=True)
     print("Virtual environment created.")
 
 def find_and_activate_venv():
@@ -72,7 +72,7 @@ if __name__ == "__main__":
         sys.exit()
     
     base_path = r"C:\Program Files"
-    new_path_no_sep = os.path.normpath(os.path.join(base_path, "Python311"))
+    new_path_no_sep = os.path.normpath(os.path.join(base_path, "Python313"))
     new_path = new_path_no_sep + os.sep
     new_path_scripts = os.path.normpath(os.path.join(new_path_no_sep, "Scripts")) + os.sep
     
